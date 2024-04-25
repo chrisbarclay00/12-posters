@@ -1,0 +1,174 @@
+---
+title: Global Investment and Competition Across the Telecommunication Industry
+author:
+  - name: Christopher Barclay
+    affil: 1
+
+affiliation:
+  - num: 1
+    address: School of International Service, American University
+
+primary_colour: "#0063B2FF"
+secondary_colour: "#9CC3D5FF"
+accent_colour: "#cc0000"
+
+column_numbers: 3
+
+output: 
+  posterdown::posterdown_html:
+    self_contained: true
+bibliography: packages.bib
+---
+
+```{r setup, include=FALSE}
+  knitr::opts_chunk$set(
+    echo = FALSE, 
+    eval = TRUE,
+    fig.align = 'center'
+  )
+
+  library(tidyverse)
+  library(readr)
+  library(knitr)
+  library(stargazer)
+  library(readxl)
+  library(lubridate)
+  library(patchwork)
+  library(gridExtra)
+  library(modelsummary)
+  library(lfe)
+  library(kableExtra)
+  library(gt)
+
+df <- read_csv("telecom.csv")
+
+poster_theme = theme_minimal(base_size = 24) +
+    theme(
+      text = element_text(family = "Times"),
+      plot.title = element_text(family = "Times", hjust = 0.5),
+      plot.subtitle = element_text(family = "Times", hjust = 0.5),
+      plot.background = element_rect(fill = "white", color = NA),
+      legend.position = "none",
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank(),
+      axis.line.x = element_line(color = "black"),
+      axis.text.x = element_text(color = "black"),
+      axis.text.y = element_text(color = "black")
+    )
+
+```
+
+# Introduction
+
+Volumes have written upon the relationship between industry competition and consumer welfare. Economists generally agree that competition tends to lower consumer prices and provide customers with more options. In [*United States v. AT&T* (1982)](https://en.wikipedia.org/wiki/United_States_v._AT%26T_(1982)) the U.S. Supreme Court broke up the telecommunications monopoly AT&T into seven smaller 'baby Bell' companies; this was possibly the biggest governmental action to break up corporate market power in U.S. history. As a result, telecommunications technology proliferated and prices were lowered. The battles to regulate, or deregulate, the telecommunications industry left lasting impressions upon the nascent regulation of the Internet (e.g., the deregulatory ["Telecommunication Act of 1996"](https://www.congress.gov/bill/104th-congress/senate-bill/652#:~:text=Telecommunications%20Act%20of%201996%20%2D%20Title,facilities%20and%20equipment%20of%20other)) and advanced telecommunications.
+
+This research paper investigates contemporary competition in the telecommunications industry, asking several questions:
+
+-   How does the level of competition in the telecommunications industry vary across different countries?"
+
+-   Is there any correlation between the level of competition and factors such as investment in telecommunications, ease of business, and economic strength?
+
+-   Are there any striking differences in level of competition among sub-industries (e.g., mobile, internet services, cable tv)?
+
+Using data from the United Nation's International Telecommunication Union (ITU) and the International Monetary Fund (IMF), I perform simple correlation and multivariate regression analyses to provide tentative insight into global telecommunication competition. Future research could incorporate data regarding annual foreign investment in the telecommunications industry, government efficiency, level of corruption, and other variables
+
+# Data and Methodology
+
+The '*telecom.csv*' dataset contains economic data from 1960-2022 across 218 countries, 18 sub-industries, and 11 ease of business indicators. Data regarding [annual investment in telecommunication services](https://datahub.itu.int/data/?i=372) and [level of competition](https://datahub.itu.int/data/?i=100045) were taken from the [ITU's "DataHub](https://datahub.itu.int/%22). Historical data on ease of business were taken from The World Bank's ['Doing Business'](https://archive.doingbusiness.org/en/data) archive. Lastly, data on economic strength were taken from the IMF's public datasets on ([GDP, current prices](https://www.imf.org/external/datamapper/NGDPD@WEO/OEMDC/ADVEC/WEOWORLD%5D) and [GDP per capita, current prices](https://www.imf.org/external/datamapper/NGDPDPC@WEO/OEMDC/ADVEC/WEOWORLD), respectively.
+
+```{r}
+# Competition Level Table
+
+competition_level_table <- df |>
+  filter(year == 2022)
+  
+  table(competition_level_table$competition_level) |>
+  as.data.frame() |>
+  na.omit() |>
+  mutate(percent = Freq/sum(Freq) * 100) |>
+  arrange(desc(Freq)) |>
+  kable(col.names = c("Level of Competition", "Freq", "Percent"), align = "lcc", caption = "Global Telecom Competition (2022)")
+
+```
+
+```{r}
+# Years Histogram
+
+ggplot(df, aes(x = year)) +
+    geom_histogram(
+        binwidth = 1,
+        color = "white",
+        fill = "grey20"
+    ) + 
+    labs(title = "Distribution of Years", 
+       x = "Year",
+       y = "Frequency") +
+  poster_theme
+
+```
+
+```{r series_freq, out.height='40%', out.width='40%', fig.height=5, eval=FALSE, include=FALSE}
+table(df$series) |>
+  as.data.frame() |>
+  na.omit() |>
+  mutate(percent = Freq/sum(Freq) * 100) |>
+  arrange(desc(Freq)) |>
+  kable(align = "lcc")
+```
+
+# Results
+
+
+```{r reg_support, include = FALSE}
+# Categorical Regression Model
+  group_by(df, competition_level) |>
+    summarize(mean = mean(annual_telecom_invest_bil, na.rm = T))
+  
+  # Estimate
+  catmod = lm(df$annual_telecom_invest_bil ~ competition_level, df)
+```
+
+```{r regression, out.width='80%', fig.align='center', fig.cap='Regression Model', fig.height=5}
+  # Table
+  stargazer(catmod, type = 'text', keep.stat = 'n')
+```
+
+```{r mytable, out.width='80%'}
+knitr::kable(iris[1:10, 1:4], caption = 'Table caption.',align = 'c',"html")
+```
+
+Or with figures: Figure \@ref(fig:standard-plot), or Figure \@ref(fig:morefigs).
+
+```{r standard-plot, out.width='80%', fig.align='center', fig.cap='Great figure!', fig.height=5}
+plot(mtcars[1:2])
+```
+
+```{r morefigs, out.width='80%', echo=TRUE, fig.cap='Amazing, right?!', fig.height=5}
+data <- iris
+
+plot(x = data$Sepal.Length, 
+     y = data$Sepal.Width, 
+     col = data$Species,
+     pch = 19, 
+     xlab = "Sepal Length (cm)",
+     ylab = "Sepal Width (cm)")
+
+```
+
+# Next Steps
+
+Aliquam sed faucibus risus, quis efficitur erat. Vestibulum semper mauris quis tempus eleifend. Aliquam sagittis dictum ipsum, quis viverra ligula eleifend ut. Curabitur sagittis vitae arcu eget faucibus. In non elementum felis. Duis et aliquam nunc. Nunc pulvinar sapien nunc, vel pretium nisi efficitur in. Fusce fringilla maximus leo et maximus. Fusce at ligula laoreet, iaculis mi at, auctor odio. Praesent sed elementum justo. Aenean consectetur risus rhoncus tincidunt efficitur. Praesent dictum mauris at diam maximus maximus [@R-posterdown].
+
+# Conclusion
+
+Try `posterdown` out! Hopefully you like it!
+
+```{r, include=FALSE}
+knitr::write_bib(c('knitr','rmarkdown','posterdown','pagedown'), 'packages.bib')
+```
+
+# Contact
+
+Please contact this author at [cb9110a\@american.edu](mailto:cb9110a@american.edu){.email}
+
+# References
